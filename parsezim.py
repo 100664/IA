@@ -1,6 +1,8 @@
 # função responsável por transformar o nosso map de simbolos em forma de matriz para o nosso mapa de simbolos em 
 #forma de lista de strings onde cada string é uma linha
 
+#ESTA CLASSE ESTÁ FEITA, NÃO MEXE MAIS
+
 def parse (path): 
     file = open(path, 'r')
     lines = file.readlines()
