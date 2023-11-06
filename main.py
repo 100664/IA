@@ -1,8 +1,10 @@
 import datetime
 import time
 
-from extras import *
+from parsezim import parse
+from Helper import *
 from build import *
+from extras import *
 
 def menu_mapa():
     print()
@@ -106,6 +108,7 @@ def menu():
     print("|3 -> Fazer uma encomenda                                                |")
     print("|4 -> Ver o que acontee quando há concorrência e choques                 |") #implementar em último, comecemos pelo básico
     print("|4 - >Sair                                                               |")
+    print ("|5 -> testes                                                            |")
     print("--------------------------------------------------------------------------")
     opcao = int(input())
 
@@ -120,8 +123,17 @@ def menu():
     elif opcao == 3:
         menu_encomendas()
 
+    elif opcao == 5:
+        
+        '''
+        está a funcionar
+
+        helper_instance = Helper("/Users/martimr/Desktop/3ano1sem/IA/IA_projeto/Projeto_4/freguesia.txt")
+        print (helper_instance.get_encomenda_pi())
+        '''
+        print()
     elif opcao ==4:
 
         return
 
-menu()
+menu() 
