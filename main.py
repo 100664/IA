@@ -6,6 +6,18 @@ from Helper import *
 from build import *
 from extras import *
 
+def find_repeated_nodes(nodes):
+    node_count = {}
+    repeated_nodes = []
+
+    for node in nodes:
+        if node.node_id in node_count:
+            repeated_nodes.append(node)
+        else:
+            node_count[node.node_id] = 1
+
+    return repeated_nodes
+
 def menu_mapa():
     print()
 
@@ -124,14 +136,20 @@ def menu():
         menu_encomendas()
 
     elif opcao == 5:
-        
-        '''
-        está a funcionar
+        builder = Build("/Users/martimr/Desktop/3ano1sem/IA/IA_projeto/Projeto_4/freguesia.txt")
+        builder.expand_graph()
+        nodes = builder.nodes
+        graph = builder.graph
+        for node in nodes:
+            print(f"Node {node.node_id} - Coordenadas: ({node.x}, {node.y})")
+            print(f"Conexões: {graph[node.node_id]}")
+        repeated_nodes = find_repeated_nodes(nodes)
+        if repeated_nodes:
+            print("Nós repetidos:")
+            for node in repeated_nodes:
+                print(f"Node {node.node_id} - Coordenadas: ({node.x}, {node.y})")
+    
 
-        helper_instance = Helper("/Users/martimr/Desktop/3ano1sem/IA/IA_projeto/Projeto_4/freguesia.txt")
-        print (helper_instance.get_encomenda_pi())
-        '''
-        print()
     elif opcao ==4:
 
         return
