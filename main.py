@@ -18,9 +18,6 @@ def find_repeated_nodes(nodes):
 
     return repeated_nodes
 
-def menu_mapa():
-    print()
-
 def menu_info():
     print ("-----------------------------Proura informada----------------------------")
     print ("|1 -> Procura A*                                                        |")
@@ -42,7 +39,7 @@ def menu_info():
 
         menu()
 
-def menu_ninfo():
+def menu_ninfo(morada):
     print ("---------------------------Proura não informada--------------------------")
     print ("|1 -> Procura em Profundidade                                           |")
     print ("|2 -> Proura em Largura                                                 |")
@@ -52,17 +49,29 @@ def menu_ninfo():
     input1 = int (input())
 
     if input1 == 1:
-        #procura em profundidade
-        print("prof")
+        
+        builder = Build("freg.txt")
+        builder.expand_graph()
+        print("0")
+        destination_id = morada  # Substitua pelo ID de destino desejado
+        print(morada)
+        bfs_path = builder.bfs(destination_id)
+        print ("1")
+        print(f"Caminho BFS para o destino {destination_id}: {bfs_path}")
+        print("2")
         
     elif input1 == 2:
-        #procura em largura
-        print("larg")
+        builder = Build("freg.txt")
+        builder.expand_graph()
+        destination_id = morada  # Substitua pelo ID de destino desejado
+        dfs_path = builder.dfs(destination_id)
+        print(f"Caminho DFS para o destino {destination_id}: {dfs_path}")
+
     else:
         menu_procura()
 
 
-def menu_procura():
+def menu_procura(morada):
     print ("--------------------------Proura do melhor Path--------------------------")
     print ("|1 -> Procura não informada                                             |")
     print ("|2 -> Procura informada                                                 |")
@@ -73,7 +82,7 @@ def menu_procura():
     input1 = int(input())
 
     if input1 == 1:
-        menu_ninfo()
+        menu_ninfo(morada)
     elif input1 == 2:
         menu_info()
     else:
@@ -81,13 +90,15 @@ def menu_procura():
 
 
 
-def menu_preco(peso, tempo):
+def menu_preco(peso, tempo, morada):
+    print("--------------------------------------------------------------------------")
     print("|     Aguarde, estamos a calcular quanto ficará a sua encomenda. . .     |")
     encomenda_price = str(calcular_preco_encomenda(peso, tempo))
     time.sleep(2)
     print("|        A sua encomenda ficará a " + encomenda_price + "€ .                                  |")
+    print("---------------------------------------------------------------------------")
  
-    menu_procura()
+    menu_procura(morada)
 
 
 def menu_encomendas ():
@@ -95,6 +106,7 @@ def menu_encomendas ():
     print("|Em quanto tempo quer que a sua encomenda seja entregue (horas)          |") 
     print("|Qual o peso da encomenda em KG?                                         |")
     print("|Qual o volume da encomenda em cm3                                       |")
+    print("|Qual a sua morada (número do nodo)                                      |")
     print("--------------------------------------------------------------------------")
         
     print ("tempo : ")
@@ -106,7 +118,10 @@ def menu_encomendas ():
     print ("volume: ")
     volume = float (input())
 
-    menu_preco(peso, tempo)
+    print ("morada: ")
+    morada = int (input())
+
+    menu_preco(peso, tempo, morada)
 
 
 
@@ -115,40 +130,38 @@ def menu():
 #pode ser que o mapa tenha que ser criado pelo utilizador não sei bem como funciona a geração do mapa, por enquanto é um mapa pre-feito
 
     print("------------------------------Menu Principal------------------------------")
-    print("|1 -> Ver os Mapas                                                       |")
+    print("|1 -> Ver Nodos e Conexões                                               |")
     print("|2 -> Ver o mapa em forma de grafo                                       |")
     print("|3 -> Fazer uma encomenda                                                |")
-    print("|4 -> Ver o que acontee quando há concorrência e choques                 |") #implementar em último, comecemos pelo básico
-    print("|4 - >Sair                                                               |")
-    print ("|5 -> testes                                                            |")
+    print("|4 -> Ver o que acontece quando há concorrência e choques                |") #implementar em último, comecemos pelo básico
+    print("|4 - > Sair                                                              |")
     print("--------------------------------------------------------------------------")
     opcao = int(input())
 
     if opcao == 1:
-        menu_mapa()
-
-    elif opcao == 2:
-        print ("2")
-        #g = Grafo
-        #g.desenha()
-
-    elif opcao == 3:
-        menu_encomendas()
-
-    elif opcao == 5:
+                
         builder = Build("/Users/martimr/Desktop/3ano1sem/IA/IA_projeto/Projeto_4/freguesia.txt")
         builder.expand_graph()
         nodes = builder.nodes
         graph = builder.graph
         for node in nodes:
             print(f"Node {node.node_id} - Coordenadas: ({node.x}, {node.y})")
-            print(f"Conexões: {graph[node.node_id]}")
+            print(f"Conexões: {list(graph[node.node_id])}")  # Converta o conjunto para lista para impressão
         repeated_nodes = find_repeated_nodes(nodes)
         if repeated_nodes:
             print("Nós repetidos:")
             for node in repeated_nodes:
                 print(f"Node {node.node_id} - Coordenadas: ({node.x}, {node.y})")
-    
+        menu()
+
+    elif opcao == 2:
+        builder = Build("/Users/martimr/Desktop/3ano1sem/IA/IA_projeto/Projeto_4/freguesia.txt")
+        builder.expand_graph()
+        builder.visualize_graph()
+        menu()
+
+    elif opcao == 3:
+        menu_encomendas()
 
     elif opcao ==4:
 

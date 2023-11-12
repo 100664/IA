@@ -13,7 +13,6 @@ class Build:
         self.graph = {}
         self.coordinates_to_node = {}
         self.helper = Helper(path)
-    
 
     def expand_graph(self):
         e_x, e_y = self.helper.get_encomenda_pi()
@@ -22,32 +21,57 @@ class Build:
         self.graph[0] = []
         self.coordinates_to_node[(e_x, e_y)] = node_e
 
+        destinations = {}  # Dicionário para armazenar nodos destino (1 a 9)
+
         for y, line in enumerate(self.helper.map):
             for x, symbol in enumerate(line):
-                if symbol == '-':
-                    # Verifique se um nodo com as mesmas coordenadas já existe
-                    coordinates = (x, y)
-                    new_node = self.coordinates_to_node.get(coordinates)
+                coordinates = (x, y)
 
-                    if new_node is None:
-                        node_id = len(self.nodes) + 10
-                        new_node = Node(node_id, x, y)
-                        self.nodes.append(new_node)
-                        self.graph[node_id] = []
-                        self.coordinates_to_node[coordinates] = new_node
+                if symbol == '-':
+                    new_node = self.add_node_if_not_exists(coordinates)
 
                     # Conecte o novo nó aos nós vizinhos (caminhos possíveis)
                     self.connect_nodes(new_node, x, y)
 
                 elif symbol.isdigit() and 1 <= int(symbol) <= 9:
-                    # Crie nós para destinos (números 1 a 9)
                     node_id = int(symbol)
-                    new_node = Node(node_id, x, y)
-                    self.nodes.append(new_node)
-                    self.graph[node_id] = []
+                    new_node = self.add_node_if_not_exists(coordinates, node_id)
+                    destinations[node_id] = new_node
 
-                    # Conecte o novo nó aos nós vizinhos (caminhos possíveis)
-                    self.connect_nodes(new_node, x, y)
+        # Mantenha as conexões já existentes
+        for node_id, connections in self.graph.items():
+            for neighbor_id in connections:
+                neighbor_node = self.get_node_by_id(neighbor_id)
+                if neighbor_node:
+                    self.connect_nodes(neighbor_node, neighbor_node.x, neighbor_node.y)
+
+        # Conecte todos os destinos entre si
+        self.connect_destinations(destinations)
+
+    def add_node_if_not_exists(self, coordinates, node_id=None):
+        new_node = self.coordinates_to_node.get(coordinates)
+
+        if new_node is None:
+            if node_id is None:
+                node_id = len(self.nodes) + 10
+            new_node = Node(node_id, *coordinates)
+            self.nodes.append(new_node)
+            self.graph[node_id] = []
+            self.coordinates_to_node[coordinates] = new_node
+
+        return new_node
+
+    def connect_destinations(self, destinations):
+        for node_id, node in destinations.items():
+            if node is not None:
+                x, y = node.x, node.y
+                for dest_id, dest_node in destinations.items():
+                    if dest_node is not None and dest_node != node:
+                        dist = abs(dest_node.x - x) + abs(dest_node.y - y)
+                        if dist == 1 and dest_node.node_id not in self.graph[node_id]:
+                            self.graph[node_id].append(dest_node.node_id)
+                            self.graph[dest_node.node_id].append(node_id)
+
 
     def connect_nodes(self, node, x, y):
         # Conecte o nó aos nós vizinhos (caminhos possíveis)
@@ -65,9 +89,6 @@ class Build:
                     self.graph[node.node_id].append(neighbor_node.node_id)
                 if node.node_id not in self.graph[neighbor_node.node_id]:
                     self.graph[neighbor_node.node_id].append(node.node_id)
-
-
-
 
     def visualize_graph(self, directed=False):
         G = nx.Graph() if not directed else nx.DiGraph()
