@@ -125,35 +125,28 @@ class Build:
 
 #---------------------------------procura não informada (DFS)------------------------------#
 
-    def dfs(self, start_node, goal_node):
-        parent = {}
-        distances = {node.node_id: self.distance(node, goal_node) for node in self.nodes}
+    def dfs(self, start_node, goal_node):   
+            visited = set()
+            path = []
 
-        def dfs_recursive(current_node):
-            if current_node == goal_node:
-                return True
+            def dfs_recursive(current_node):
+                nonlocal path
 
-            neighbors = self.graph[current_node]
-            neighbors.sort(key=lambda neighbor_id: distances[neighbor_id], reverse=True)
+                if current_node == goal_node:
+                    path.append(current_node)
+                    return True
 
-            for neighbor_id in neighbors:
-                if neighbor_id not in parent:
-                    parent[neighbor_id] = current_node
-                    if dfs_recursive(neighbor_id):
-                        return True
+                visited.add(current_node)
 
-            return False
+                for neighbor_id in self.graph[current_node]:
+                    if neighbor_id not in visited:
+                        path.append(current_node)
+                        if dfs_recursive(neighbor_id):
+                            return True
+                        path.pop()
 
-        parent[start_node] = None
-        dfs_recursive(start_node)
+                return False
 
-        if goal_node not in parent:
-            return None
+            dfs_recursive(start_node)
 
-        path = []
-        current_node = goal_node
-        while current_node is not None:
-            path.append(current_node)
-            current_node = parent[current_node]
-
-        return path[::-1]
+            return path[::-1]  # Retorna o caminho invertido para começar do nó inicial
