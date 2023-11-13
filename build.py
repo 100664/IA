@@ -14,6 +14,8 @@ class Build:
         self.coordinates_to_node = {}
         self.helper = Helper(path)
 
+#--------------------------------criação dos nodos e conexões----------------#
+
     def expand_graph(self):
         e_x, e_y = self.helper.get_encomenda_pi()
         node_e = Node(0, e_x, e_y)
@@ -90,6 +92,14 @@ class Build:
                 if node.node_id not in self.graph[neighbor_node.node_id]:
                     self.graph[neighbor_node.node_id].append(node.node_id)
 
+    def get_node_by_id(self, node_id):
+        for node in self.nodes:
+            if node.node_id == node_id:
+                return node
+        return None
+
+#-----------------------prints + desenhos---------------------------------#
+
     def visualize_graph(self, directed=False):
         G = nx.Graph() if not directed else nx.DiGraph()
 
@@ -108,67 +118,42 @@ class Build:
 
         plt.show()
 
-    def bfs(self, destination_id):
-        start_node = self.nodes[0]
-        visited = set()
-        queue = Queue()
-        queue.put(start_node)
-
-        while not queue.empty():
-            current_node = queue.get()
-
-            if current_node.node_id == destination_id:
-                return self.reconstruct_path(start_node, current_node)
-
-            visited.add(current_node.node_id)
-
-            for neighbor_id in self.graph[current_node.node_id]:
-                neighbor = self.get_node_by_id(neighbor_id)
-
-                if neighbor.node_id not in visited and neighbor not in queue.queue:
-                    queue.put(neighbor)
-
-        return None  # Caminho não encontrado
-
-    def dfs(self, destination_id):
-        start_node = self.nodes[0]
-        visited = set()
-        stack = LifoQueue()
-        stack.put(start_node)
-
-        while not stack.empty():
-            current_node = stack.get()
-
-            if current_node.node_id == destination_id:
-                return self.reconstruct_path(start_node, current_node)
-
-            visited.add(current_node.node_id)
-
-            for neighbor_id in self.graph[current_node.node_id]:
-                neighbor = self.get_node_by_id(neighbor_id)
-
-                if neighbor.node_id not in visited and neighbor not in stack.queue:
-                    stack.put(neighbor)
-
-        return None  # Caminho não encontrado
-
-    def get_node_by_id(self, node_id):
+    def print_graph (self):
         for node in self.nodes:
-            if node.node_id == node_id:
-                return node
-        return None
+            print(f"Node {node.node_id} - Coordenadas: ({node.x}, {node.y})")
+            print(f"Conexões: {list(self.graph[node.node_id])}")
 
-    def reconstruct_path(self, start_node, end_node):
-        path = [end_node.node_id]
-        current_node = end_node
+#---------------------------------procura não informada (DFS)------------------------------#
 
-        while current_node.node_id != start_node.node_id:
-            for neighbor_id in self.graph[current_node.node_id]:
-                neighbor = self.get_node_by_id(neighbor_id)
-                if neighbor in path:
-                    current_node = neighbor
-                    path.insert(0, neighbor.node_id)
-                    break
+    def dfs(self, start_node, goal_node):
+        parent = {}
+        distances = {node.node_id: self.distance(node, goal_node) for node in self.nodes}
 
-        return path
+        def dfs_recursive(current_node):
+            if current_node == goal_node:
+                return True
 
+            neighbors = self.graph[current_node]
+            neighbors.sort(key=lambda neighbor_id: distances[neighbor_id], reverse=True)
+
+            for neighbor_id in neighbors:
+                if neighbor_id not in parent:
+                    parent[neighbor_id] = current_node
+                    if dfs_recursive(neighbor_id):
+                        return True
+
+            return False
+
+        parent[start_node] = None
+        dfs_recursive(start_node)
+
+        if goal_node not in parent:
+            return None
+
+        path = []
+        current_node = goal_node
+        while current_node is not None:
+            path.append(current_node)
+            current_node = parent[current_node]
+
+        return path[::-1]

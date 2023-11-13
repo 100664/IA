@@ -21,6 +21,33 @@ def find_repeated_nodes(nodles):
 '''
 #-----------------------------//menu novo\\---------------------------------
 
+def menu_avaliacao():
+    print("--------------------------------------------------------------------------")
+    print("|      Avalie a nossa entrega de 1 a 5 (1-> horrível e 5->perfeita)      |")
+    print("--------------------------------------------------------------------------")
+    avalia = int(input())
+    print("--------------------------------------------------------------------------")
+    print("|          A nossa entrega foi avaliada com 5 estrelas                   |")
+    print("|    Opinião não passa de opinião. Esperamos por si numa próxima <3      |")
+    print("--------------------------------------------------------------------------")
+    menu()
+
+#-----------------------------//menu novo\\---------------------------------
+
+def menu_entrega(dist, tempo, peso):
+    transporte = escolher_meio_transporte(dist, tempo, peso)
+    emissao, atraso = calcular_co2_atraso(transporte,dist, tempo, peso)
+    print ("----------------------------------Menu Entrega--------------------------------")
+    print ("|                          Dados da sua encomenda:                           |")
+    print ("| Meio de transporte usado na entrega: " +str(transporte)+ "                               |")
+    print ("| CO2 gasto para a entrega: " +str(emissao)+ "Kg de CO2                                        |")
+    print ("| Atras da encomenda (HH.MM): " +str(atraso)+ "                                         |")
+    print("--------------------------------------------------------------------------")
+
+    menu_avaliacao()
+
+#-----------------------------//menu novo\\---------------------------------
+
 
 def menu_info(morada, caminho):
     print ("-----------------------------Proura informada----------------------------")
@@ -47,7 +74,7 @@ def menu_info(morada, caminho):
 #-----------------------------//menu novo\\---------------------------------
 
 
-def menu_ninfo(morada, caminho):
+def menu_ninfo( morada,caminho,peso, tempo):
     print ("---------------------------Proura não informada--------------------------")
     print ("|1 -> Procura em Profundidade                                           |")
     print ("|2 -> Proura em Largura                                                 |")
@@ -60,25 +87,28 @@ def menu_ninfo(morada, caminho):
         
         builder = Build(caminho)
         builder.expand_graph()
-        destination_id = morada
-        bfs_path = builder.bfs(destination_id)
-        print(f"Caminho BFS para o destino {destination_id}: {bfs_path}")
-        
+        start_node = builder.get_node_by_id(0)
+        end_node = builder.get_node_by_id(morada)
+        if start_node and end_node:
+            dfs_path = builder.dfs(0, morada)
+            print("Caminho DFS:", dfs_path)
+            menu_entrega(len(dfs_path),tempo, peso)
+        else:
+            print("Nó inicial ou nó objetivo não encontrado.")
+            menu()
+
     elif input1 == 2:
-        builder = Build(menu_principal)
+        builder = Build(caminho)
         builder.expand_graph()
-        destination_id = morada
-        dfs_path = builder.dfs(destination_id)
-        print(f"Caminho DFS para o destino {destination_id}: {dfs_path}")
+        #procura
+        menu_entrega(50, tempo, peso)
 
     else:
-        menu_procura()
-
-    menu_principal
+        menu_procura(morada, caminho, peso, tempo)
 #-----------------------------//menu novo\\---------------------------------
 
 
-def menu_procura(morada, caminho):
+def menu_procura(morada, caminho, peso, tempo):
     print ("--------------------------Proura do melhor Path--------------------------")
     print ("|1 -> Procura não informada                                             |")
     print ("|2 -> Procura informada                                                 |")
@@ -89,9 +119,9 @@ def menu_procura(morada, caminho):
     input1 = int(input())
 
     if input1 == 1:
-        menu_ninfo(morada, caminho)
+        menu_ninfo(morada, caminho, peso, tempo)
     elif input1 == 2:
-        menu_info(morada, caminho)
+        menu_info(morada, caminho, peso, tempo)
     else:
         menu_principal()
 
@@ -107,7 +137,7 @@ def menu_preco(peso, tempo, morada, caminho):
     print("|        A sua encomenda ficará a " + encomenda_price + "€ .                                  |")
     print("---------------------------------------------------------------------------")
  
-    menu_procura(morada, caminho)
+    menu_procura(morada, caminho, peso, tempo)
 
 
 #-----------------------------//menu novo\\---------------------------------
@@ -146,7 +176,7 @@ def menu_principal (caminho):
     print("|2 -> Ver o mapa em forma de grafo                                       |")
     print("|3 -> Fazer uma encomenda                                                |")
     print("|4 -> Ver o que acontece quando há concorrência e choques                |") #implementar em último, comecemos pelo básico
-    print("|5 - > Sair                                                              |")
+    print("|5 -> Sair                                                               |")
     print("--------------------------------------------------------------------------")
     opcao = int(input())
 
@@ -155,20 +185,16 @@ def menu_principal (caminho):
 
         builder = Build(caminho)
         builder.expand_graph()
+        builder.print_graph()
 
-        nodles = builder.nodes
-        graph = builder.graph
-
-        for node in nodles:
-            print(f"Node {node.node_id} - Coordenadas: ({node.x}, {node.y})")
-            print(f"Conexões: {list(graph[node.node_id])}")
-            '''
+        '''
         repeated_nodes = builder.find_repeated_nodes(nodles)
         if repeated_nodes:
             print("Nós repetidos:")
             for node in repeated_nodes:
                 print(f"Node {node.node_id} - Coordenadas: ({node.x}, {node.y})")
             '''
+        
         menu_principal(caminho)
 
     elif opcao == 2:
