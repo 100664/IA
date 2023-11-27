@@ -30,7 +30,7 @@ def menu_avaliacao():
     print("|          A nossa entrega foi avaliada com 5 estrelas                   |")
     print("|    Opinião não passa de opinião. Esperamos por si numa próxima <3      |")
     print("--------------------------------------------------------------------------")
-    menu()
+    return
 
 #-----------------------------//menu novo\\---------------------------------
 
@@ -39,15 +39,41 @@ def menu_entrega(dist, tempo, peso):
     emissao, atraso = calcular_co2_atraso(transporte,dist, tempo, peso)
     print ("----------------------------------Menu Entrega--------------------------------")
     print ("|                          Dados da sua encomenda:                           |")
-    print ("| Meio de transporte usado na entrega: " +str(transporte)+ "                               |")
-    print ("| CO2 gasto para a entrega: " +str(emissao)+ "Kg de CO2                                        |")
-    print ("| Atras da encomenda (HH.MM): " +str(atraso)+ "                                         |")
+    print ("| Meio de transporte usado na entrega: " +str(transporte)+ "                                  |")
+    print ("| CO2 gasto para a entrega: " +str(emissao)+ "Kg de CO2                                     |")
+    print ("| Atraso da encomenda (HH.MM): " +str(atraso)+ "                                       |")
     print("--------------------------------------------------------------------------")
 
     menu_avaliacao()
 
 #-----------------------------//menu novo\\---------------------------------
 
+def menu_prints(caminho,path,peso, tempo):
+    print("--------------------------------------------------------------------------")
+    print("|1 -> Para ver o caminho percorrido pelo nosso estafeta                  |")
+    print("|2 -> Ver o caminho em formato de Grafo                                  |")
+    print("|3 -> Avançar                                                            |")
+    print("|4 -> Sair                                                               |")
+    print("--------------------------------------------------------------------------")
+
+    inputzin = int (input())
+    
+    if inputzin == 1:
+        print("Caminho percorrido pelo nosso estafeta: ")
+        print(path)
+        menu_prints(caminho,path,peso, tempo)
+    elif inputzin == 2:
+        builder = Build(caminho)
+        builder.expand_graph()
+        builder.highlight_path(path)
+        menu_prints(caminho,path,peso, tempo)
+    elif inputzin == 3:
+        menu_entrega(len(path), tempo, peso)
+        
+    elif inputzin == 4:
+        return
+
+#-----------------------------//menu novo\\---------------------------------
 
 def menu_info(morada, caminho):
     print ("-----------------------------Proura informada----------------------------")
@@ -74,7 +100,7 @@ def menu_info(morada, caminho):
 #-----------------------------//menu novo\\---------------------------------
 
 
-def menu_ninfo( morada,caminho,peso, tempo):
+def menu_ninfo(morada,caminho,peso, tempo):
     print ("---------------------------Proura não informada--------------------------")
     print ("|1 -> Procura em Profundidade                                           |")
     print ("|2 -> Proura em Largura                                                 |")
@@ -90,9 +116,15 @@ def menu_ninfo( morada,caminho,peso, tempo):
         start_node = builder.get_node_by_id(0)
         end_node = builder.get_node_by_id(morada)
         if start_node and end_node:
-            dfs_path = builder.dfs(0, morada)
-            print("Caminho DFS:", dfs_path)
-            menu_entrega(len(dfs_path),tempo, peso)
+            dfs_path = builder.find_path_dfs(start_node.node_id, end_node.node_id)
+
+            if dfs_path:
+                menu_prints(caminho,dfs_path,peso, tempo)
+            else:
+                print("Caminho não encontrado.")
+
+            #menu_entrega()
+            menu()
         else:
             print("Nó inicial ou nó objetivo não encontrado.")
             menu()
@@ -100,8 +132,21 @@ def menu_ninfo( morada,caminho,peso, tempo):
     elif input1 == 2:
         builder = Build(caminho)
         builder.expand_graph()
-        #procura
-        menu_entrega(50, tempo, peso)
+        start_node = builder.get_node_by_id(0)
+        end_node = builder.get_node_by_id(morada)
+        if start_node and end_node:
+            bfs_path = builder.find_path_bfs(start_node.node_id, end_node.node_id)
+
+            if bfs_path:
+                menu_prints(caminho,bfs_path,peso, tempo)
+            else:
+                print("Caminho não encontrado.")
+
+            #menu_entrega()
+            menu()
+        else:
+            print("Nó inicial ou nó objetivo não encontrado.")
+            menu()
 
     else:
         menu_procura(morada, caminho, peso, tempo)

@@ -14,16 +14,29 @@ class Build:
         self.coordinates_to_node = {}
         self.helper = Helper(path)
 
+#------------auxiliares----------------#
+
+    def add_node(self, node):
+        self.nodes.append(node)
+        self.graph[node.node_id] = []  # Use node.node_id como chave
+
+
+    def add_edge(self, node1, node2):
+        self.graph[node1.node_id].append(node2.node_id)
+        self.graph[node2.node_id].append(node1.node_id)
+
+
+
 #--------------------------------criação dos nodos e conexões----------------#
 
     def expand_graph(self):
         e_x, e_y = self.helper.get_encomenda_pi()
         node_e = Node(0, e_x, e_y)
-        self.nodes.append(node_e)
+        self.add_node(node_e)
         self.graph[0] = []
         self.coordinates_to_node[(e_x, e_y)] = node_e
 
-        destinations = {}  # Dicionário para armazenar nodos destino (1 a 9)
+        destinations = {}
 
         for y, line in enumerate(self.helper.map):
             for x, symbol in enumerate(line):
@@ -31,8 +44,6 @@ class Build:
 
                 if symbol == '-':
                     new_node = self.add_node_if_not_exists(coordinates)
-
-                    # Conecte o novo nó aos nós vizinhos (caminhos possíveis)
                     self.connect_nodes(new_node, x, y)
 
                 elif symbol.isdigit() and 1 <= int(symbol) <= 9:
@@ -40,15 +51,14 @@ class Build:
                     new_node = self.add_node_if_not_exists(coordinates, node_id)
                     destinations[node_id] = new_node
 
-        # Mantenha as conexões já existentes
         for node_id, connections in self.graph.items():
             for neighbor_id in connections:
                 neighbor_node = self.get_node_by_id(neighbor_id)
                 if neighbor_node:
                     self.connect_nodes(neighbor_node, neighbor_node.x, neighbor_node.y)
 
-        # Conecte todos os destinos entre si
         self.connect_destinations(destinations)
+
 
     def add_node_if_not_exists(self, coordinates, node_id=None):
         new_node = self.coordinates_to_node.get(coordinates)
@@ -57,11 +67,11 @@ class Build:
             if node_id is None:
                 node_id = len(self.nodes) + 10
             new_node = Node(node_id, *coordinates)
-            self.nodes.append(new_node)
-            self.graph[node_id] = []
+            self.add_node(new_node)
             self.coordinates_to_node[coordinates] = new_node
 
         return new_node
+
 
     def connect_destinations(self, destinations):
         for node_id, node in destinations.items():
@@ -100,8 +110,8 @@ class Build:
 
 #-----------------------prints + desenhos---------------------------------#
 
-    def visualize_graph(self, directed=False):
-        G = nx.Graph() if not directed else nx.DiGraph()
+    def visualize_graph(self):#, directed=False):
+        G = nx.Graph() #if not directed else nx.DiGraph()
 
         for node in self.nodes:
             G.add_node(node.node_id, pos=(node.x, -node.y))  # Invertemos o eixo y para corresponder à representação do mapa
@@ -123,30 +133,106 @@ class Build:
             print(f"Node {node.node_id} - Coordenadas: ({node.x}, {node.y})")
             print(f"Conexões: {list(self.graph[node.node_id])}")
 
-#---------------------------------procura não informada (DFS)------------------------------#
+#-----------------------função de procura não informada (DFS)---------------------------------#
 
-    def dfs(self, start_node, goal_node):   
+    def dfs(self, start_node_id, goal_node_id, visited=None, path=None):
+        if visited is None:
             visited = set()
+        if path is None:
             path = []
 
-            def dfs_recursive(current_node):
-                nonlocal path
+        visited.add(start_node_id)
+        path = path + [start_node_id]
 
-                if current_node == goal_node:
-                    path.append(current_node)
-                    return True
+        if start_node_id == goal_node_id:
+            return path
 
-                visited.add(current_node)
+        for neighbor_id in self.graph[start_node_id]:
+            if neighbor_id not in visited:
+                new_path = self.dfs(neighbor_id, goal_node_id, visited, path)
+                if new_path:
+                    return new_path
 
-                for neighbor_id in self.graph[current_node]:
-                    if neighbor_id not in visited:
-                        path.append(current_node)
-                        if dfs_recursive(neighbor_id):
-                            return True
-                        path.pop()
+        return None
 
-                return False
+    def find_path_dfs(self, start_node_id, goal_node_id):
+        start_node = self.get_node_by_id(start_node_id)
+        goal_node = self.get_node_by_id(goal_node_id)
+        if start_node and goal_node:
+            return self.dfs(start_node.node_id, goal_node.node_id)
+        else:
+            print("Nó inicial ou nó objetivo não encontrado.")
+            return None
 
-            dfs_recursive(start_node)
+#-----------------------função de procura não informada (BFS)---------------------------------#
 
-            return path[::-1]  # Retorna o caminho invertido para começar do nó inicial
+    def bfs(self, start_node_id, goal_node_id):
+        visited = set()
+        queue = Queue()
+        queue.put([start_node_id])
+
+        while not queue.empty():
+            path = queue.get()
+            node_id = path[-1]
+
+            if node_id not in visited:
+                visited.add(node_id)
+
+                if node_id == goal_node_id:
+                    return path
+
+                for neighbor_id in self.graph[node_id]:
+                    new_path = list(path)
+                    new_path.append(neighbor_id)
+                    queue.put(new_path)
+
+        return None
+    
+    def find_path_bfs(self, start_node_id, goal_node_id):
+        start_node = self.get_node_by_id(start_node_id)
+        goal_node = self.get_node_by_id(goal_node_id)
+        if start_node and goal_node:
+            return self.bfs(start_node.node_id, goal_node.node_id)
+        else:
+            print("Nó inicial ou nó objetivo não encontrado.")
+            return None
+
+#-----------------------printar_grafo DFS e BFS---------------------------------#
+
+    def get_node_index_by_id(self, node_id):
+        for i, node in enumerate(self.nodes):
+            if node.node_id == node_id:
+                return i
+        return None
+
+    def highlight_path(self, path):
+        node_colors = {node.node_id: 'skyblue' for node in self.nodes}
+
+        for node_id in path:
+            if node_id in node_colors:
+                node_colors[node_id] = 'green'
+
+        G = nx.Graph()
+
+        for i, node in enumerate(self.nodes):
+            G.add_node(node.node_id, pos=(node.x, -node.y), color=node_colors[node.node_id])
+
+        for node_id, connections in self.graph.items():
+            for neighbor_id in connections:
+                if node_id in path and neighbor_id in path:
+                    G.add_edge(node_id, neighbor_id, color='green')
+                else:
+                    G.add_edge(node_id, neighbor_id, color='gray')
+
+        pos = nx.get_node_attributes(G, 'pos')
+        edge_colors = nx.get_edge_attributes(G, 'color')
+
+        labels = {node.node_id: node.node_id for node in self.nodes}
+
+        nx.draw(G, pos, with_labels=True, labels=labels, font_weight='bold', node_size=700, font_size=8, node_color=list(node_colors.values()))
+
+        for edge, color in edge_colors.items():
+            nx.draw_networkx_edges(G, pos, edgelist=[edge], edge_color=color, arrows=True, connectionstyle='arc3,rad=0.1')
+
+        plt.show()
+
