@@ -3,212 +3,583 @@ import time
 
 from parsezim import parse
 from Helper import *
+from Encomenda import *
 from build import *
 from extras import *
+import warnings
 
-'''
-def find_repeated_nodes(nodles):
-    node_count = {}
-    repeated_nodes = []
-
-    for node in nodles:
-        if node.node_id in node_count:
-            repeated_nodes.append(node)
-        else:
-            node_count[node.node_id] = 1
-
-    return repeated_nodes
-'''
 #-----------------------------//menu novo\\---------------------------------
 
-def menu_avaliacao():
+def menu_helper2 (lista_encomendas, caminho):
+    print ("---------------------------------Menu Mediador-------------------------------")
+    print ("|1 -> Começar uma nova leva de encomendas                                   |")
+    print ("|2 -> Continuar com as mesmas encomendas                                    |")
+    print ("|3 -> Sair do programa                                                      |")
+    print ("-----------------------------------------------------------------------------")
+
+    input1 = int (input())
+
+    if input1 == 1:
+        menu_principal(caminho)
+    elif input1 == 2:
+        menu_procura (caminho, lista_encomendas)
+    else:
+        return
+    
+#-----------------------------//menu novo\\---------------------------------
+
+def menu_avaliacao(lista_encomendas_copia, ordered_deliveries, caminho):
     print("--------------------------------------------------------------------------")
     print("|      Avalie a nossa entrega de 1 a 5 (1-> horrível e 5->perfeita)      |")
     print("--------------------------------------------------------------------------")
-    avalia = int(input())
-    print("--------------------------------------------------------------------------")
-    print("|          A nossa entrega foi avaliada com 5 estrelas                   |")
-    print("|    Opinião não passa de opinião. Esperamos por si numa próxima <3      |")
-    print("--------------------------------------------------------------------------")
-    return
 
-#-----------------------------//menu novo\\---------------------------------
+    print("Avaliação:", end=" ")
+    avaliacao_input = input()
+    try:
+        avaliacao = int(avaliacao_input)
+        if (avaliacao>5 or avaliacao<1):
+            i = 1
+            print("--------------------------------------------------------------------------")
+            print("|   Avalie corretamente, só vai aumentar o tempo de espera. Obrigado!    |")
+            print("--------------------------------------------------------------------------")
+            time.sleep(2*i)
+            i+=1
+            menu_avaliacao(lista_encomendas_copia, ordered_deliveries, caminho)
 
-def menu_entrega(dist, tempo, peso):
-    transporte = escolher_meio_transporte(dist, tempo, peso)
-    emissao, atraso = calcular_co2_atraso(transporte,dist, tempo, peso)
-    print ("----------------------------------Menu Entrega--------------------------------")
-    print ("|                          Dados da sua encomenda:                           |")
-    print ("| Meio de transporte usado na entrega: " +str(transporte)+ "                                  |")
-    print ("| CO2 gasto para a entrega: " +str(emissao)+ "Kg de CO2                                     |")
-    print ("| Atraso da encomenda (HH.MM): " +str(atraso)+ "                                       |")
-    print("--------------------------------------------------------------------------")
-
-    menu_avaliacao()
-
-#-----------------------------//menu novo\\---------------------------------
-
-def menu_prints(caminho,path,peso, tempo):
-    print("--------------------------------------------------------------------------")
-    print("|1 -> Para ver o caminho percorrido pelo nosso estafeta                  |")
-    print("|2 -> Ver o caminho em formato de Grafo                                  |")
-    print("|3 -> Avançar                                                            |")
-    print("|4 -> Sair                                                               |")
-    print("--------------------------------------------------------------------------")
-
-    inputzin = int (input())
+    except ValueError:
+        print("ERROR: Entrada inválida. Certifique-se de inserir um número válido.")
+        menu_avaliacao(lista_encomendas_copia, ordered_deliveries, caminho)
     
-    if inputzin == 1:
-        print("Caminho percorrido pelo nosso estafeta: ")
-        print(path)
-        menu_prints(caminho,path,peso, tempo)
-    elif inputzin == 2:
+    menu_helper2(lista_encomendas_copia, caminho)
+
+
+#-----------------------------//menu novo\\---------------------------------
+#continuar com esta ideia, mas mudar a forma de se fazer as contas
+
+def menu_entrega(lista_encomendas,  ordered_deliveries, caminho):
+    builder = Build(caminho)
+    builder.expand_graph()
+    distancia = 0
+    co2 = 0
+    tempo = 0
+    print("menu_entrega1: ",ordered_deliveries)
+    print("menu_entrega2: ",lista_encomendas)
+    for encomenda_id, specific_encomenda_path in ordered_deliveries:
+        encomenda = builder.obter_encomenda_por_id(encomenda_id, lista_encomendas)
+
+        distancia += len (specific_encomenda_path)
+        #transporte = escolher_meio_transporte(len(specific_encomenda_path),encomenda)
+        #co2_helper, tempo_atraso = calcular_co2_atraso(len(specific_encomenda_path),encomenda, transporte) #mudar isto
+        co2 += 1
+        tempo += 1
+        transporte = "Carro"
+        
+                    
+    print ("------------------------------Dados da Entrega----------------------------")
+    print (f"| Distância percorrida em KM : {distancia} KM                                     |")
+    print (f"| Meio de transporte usado na entrega:  {transporte}                           |")
+    print (f"| CO2 gasto para a entrega: {co2} CM3 de CO2                               |")
+    print (f"| Atraso da encomenda (HH.MM): {tempo}                                        |")
+    print("--------------------------------------------------------------------------")
+
+    menu_avaliacao(lista_encomendas, ordered_deliveries, caminho)
+
+#-----------------------------//menu novo\\---------------------------------
+
+def menu_preço(lista_encomendas, ordered_deliveries, caminho):
+    builder = Build(caminho)
+    builder.expand_graph()
+
+    for encomenda_id, specific_encomenda_path in ordered_deliveries:
+        encomenda = builder.obter_encomenda_por_id(encomenda_id, lista_encomendas)
+
+        print(f"-----------------------------------Preço {encomenda_id}---------------------------------")
+        encomenda_price = calcular_preco_encomenda(encomenda, len(specific_encomenda_path))
+        encomenda_price_str = f"{encomenda_price:.2f}"
+        print(f"|        A encomenda de ID {encomenda_id} a {encomenda_price_str} € .                                   |")
+        print("---------------------------------------------------------------------------")
+
+    
+    menu_entrega(lista_encomendas, ordered_deliveries, caminho)
+
+#-----------------------------//menu novo\\---------------------------------
+
+def menu_helper (lista_encomendas, ordered_deliveries, caminho):
+    print ("---------------------------------Menu Mediador-------------------------------")
+    print ("|1 -> Ver os dados da entrega                                               |")   
+    print ("|2 -> Sair                                                                  |")
+    print ("-----------------------------------------------------------------------------")
+    input1 = int(input())
+
+    if input1 == 1:
+        
+        menu_preço(lista_encomendas, ordered_deliveries, caminho)
+    
+    elif input1 == 2:
+        menu_principal(caminho)
+
+    else:
+        menu()
+
+#-----------------------------//menu novo\\---------------------------------
+
+def menu_guloso(caminho, lista_encomendas):
+    print ("----------------------------------Procura A*---------------------------------")
+    print ("|1 -> Caminho feito por cada encomenda                                      |")
+    print ("|2 -> Caminho feito por uma encomenda                                       |")
+    print ("|3 -> Desenho do caminho de uma encomenda em formato de  Grafo              |")
+    print ("|4 -> Informações                                                           |")
+    print ("|5 -> Sair                                                                  |")
+    print ("-----------------------------------------------------------------------------")
+
+    input1 = int (input())
+
+    if input1 == 1:
         builder = Build(caminho)
         builder.expand_graph()
-        builder.highlight_path(path)
-        menu_prints(caminho,path,peso, tempo)
-    elif inputzin == 3:
-        menu_entrega(len(path), tempo, peso)
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='greedy')
+        for i, path in enumerate(ordered_deliveries, start=1):
+            print(f'{path}')
+
+        menu_guloso(caminho, lista_encomendas)
+
+    if input1 == 2:
+
+        builder = Build(caminho)
+        builder.expand_graph()
+
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='greedy')
+        print("--------------------------------------------")
+        print("Encomenda que deseja ver (id = XXXX):", end=" ")
+        target_encomenda_id = str(input())
+        print("--------------------------------------------")
+        specific_encomenda_path = builder.get_specific_encomenda_path(target_encomenda_id, ordered_deliveries)
+
+        if specific_encomenda_path:
+            print(f"Caminho para a encomenda com ID {target_encomenda_id} : ", specific_encomenda_path)
+
+            menu_guloso(caminho, lista_encomendas)
+        else:
+            print(f"Encomenda com ID {target_encomenda_id} não encontrada.")
+
+            menu_principal(caminho)
+
+    elif input1 == 3:
+
+        builder = Build(caminho)
+        builder.expand_graph()
+
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='greedy')
+
+        print("--------------------------------------------")
+        print("Encomenda que deseja ver (id = XXXX):", end=" ")
+        target_encomenda_id = str(input())
+        print("--------------------------------------------")
+        specific_encomenda_path = builder.get_specific_encomenda_path(target_encomenda_id, ordered_deliveries)
+
+        if specific_encomenda_path:
+
+            with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    builder.highlight_path(specific_encomenda_path)
+
+            menu_aestrela(caminho, lista_encomendas)
+        else:
+            print(f"Encomenda com ID {target_encomenda_id} não encontrada.")
+            menu_encomendas(caminho, lista_encomendas)
         
-    elif inputzin == 4:
-        return
+    elif input1 == 4:
+        builder = Build(caminho)
+        builder.expand_graph()
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='a_star')
+        #print ("a_estrela: ", lista_encomendas)
+        menu_helper(lista_encomendas, ordered_deliveries, caminho)
+
+    elif input1 == 5:
+        menu_info(caminho,  lista_encomendas)
 
 #-----------------------------//menu novo\\---------------------------------
 
-def menu_info(morada, caminho):
+def menu_aestrela(caminho, lista_encomendas):
+    print ("----------------------------------Procura A*---------------------------------")
+    print ("|1 -> Caminho feito por cada encomenda                                      |")
+    print ("|2 -> Caminho feito por uma encomenda                                       |")
+    print ("|3 -> Desenho do caminho de uma encomenda em formato de  Grafo              |")
+    print ("|4 -> Informações                                                           |")
+    print ("|5 -> Sair                                                                  |")
+    print("------------------------------------------------------------------------------")
+
+    input1 = int (input())
+
+    if input1 == 1:
+        builder = Build(caminho)
+        builder.expand_graph()
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='a_star')
+        for i, path in enumerate(ordered_deliveries, start=1):
+            print(f'{path}')
+
+        menu_aestrela(caminho, lista_encomendas)
+
+    if input1 == 2:
+
+        builder = Build(caminho)
+        builder.expand_graph()
+
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='a_star')
+        print("--------------------------------------------")
+        print("Encomenda que deseja ver (id = XXXX):", end=" ")
+        target_encomenda_id = str(input())
+        print("--------------------------------------------")
+        specific_encomenda_path = builder.get_specific_encomenda_path(target_encomenda_id, ordered_deliveries)
+
+        if specific_encomenda_path:
+            print(f"Caminho para a encomenda com ID {target_encomenda_id} : ", specific_encomenda_path)
+
+            menu_aestrela(caminho, lista_encomendas)
+        else:
+            print(f"Encomenda com ID {target_encomenda_id} não encontrada.")
+
+            menu_principal(caminho)
+
+    elif input1 == 3:
+
+        builder = Build(caminho)
+        builder.expand_graph()
+
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='a_star')
+
+        print("--------------------------------------------")
+        print("Encomenda que deseja ver (id = XXXX):", end=" ")
+        target_encomenda_id = str(input())
+        print("--------------------------------------------")
+        specific_encomenda_path = builder.get_specific_encomenda_path(target_encomenda_id, ordered_deliveries)
+
+        if specific_encomenda_path:
+
+            with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    builder.highlight_path(specific_encomenda_path)
+
+            menu_aestrela(caminho, lista_encomendas)
+        else:
+            print(f"Encomenda com ID {target_encomenda_id} não encontrada.")
+            menu_encomendas(caminho, lista_encomendas)
+        
+    elif input1 == 4:
+        builder = Build(caminho)
+        builder.expand_graph()
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='a_star')
+        #print ("a_estrela: ", lista_encomendas)
+        menu_helper(lista_encomendas, ordered_deliveries, caminho)
+
+    elif input1 == 5:
+        menu_info(caminho,  lista_encomendas)
+
+
+
+#-----------------------------//menu novo\\---------------------------------
+
+def menu_info(caminho,  lista_encomendas):
     print ("-----------------------------Proura informada----------------------------")
     print ("|1 -> Procura A*                                                        |")
     print ("|2 -> Proura Gulosa                                                     |")
     print ("|3 -> Sair                                                              |")
-    print("--------------------------------------------------------------------------")
+    print ("-------------------------------------------------------------------------")
 
     input1 = int (input())
 
     if input1 == 1:
-        #procura A*
-        print("a*")
         
-    elif input1 == 2:
-        #procura gulosa
-        print("greedy")
-    else:
-        menu_procura()
+        menu_aestrela(caminho, lista_encomendas)
 
-    menu_principal()
+    elif input1 == 2:
+
+        menu_guloso(caminho, lista_encomendas)
+        
+    elif input1 == 3:
+        menu_procura(caminho, lista_encomendas)
+    else:
+        menu()
+
+#-----------------------------//menu novo\\---------------------------------
+
+def menu_bfs(caminho, lista_encomendas):
+    print ("-----------------------------Procura em Largura------------------------------")
+    print ("|1 -> Caminho feito por cada encomenda                                      |")
+    print ("|2 -> Caminho feito por uma encomenda                                       |")
+    print ("|3 -> Desenho do caminho de uma encomenda em formato de  Grafo              |")
+    print ("|4 -> Informações                                                           |")
+    print ("|5 -> Sair                                                                  |")
+    print("------------------------------------------------------------------------------")
+
+    input1 = int (input())
+
+    if input1 == 1:
+        builder = Build(caminho)
+        builder.expand_graph()
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='bfs')
+        for i, path in enumerate(ordered_deliveries, start=1):
+            print(f'{path}')
+
+        menu_bfs(caminho, lista_encomendas)
+
+    if input1 == 2:
+
+        builder = Build(caminho)
+        builder.expand_graph()
+
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='bfs')
+        print("--------------------------------------------")
+        print("Encomenda que deseja ver (id = XXXX):", end=" ")
+        target_encomenda_id = str(input())
+        print("--------------------------------------------")
+        specific_encomenda_path = builder.get_specific_encomenda_path(target_encomenda_id, ordered_deliveries)
+
+        if specific_encomenda_path:
+            print(f"Caminho para a encomenda com ID {target_encomenda_id} : ", specific_encomenda_path)
+
+            menu_bfs(caminho, lista_encomendas)
+        else:
+            print(f"Encomenda com ID {target_encomenda_id} não encontrada.")
+
+            menu_principal(caminho)
+
+    elif input1 == 3:
+
+        builder = Build(caminho)
+        builder.expand_graph()
+
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='bfs')
+
+        print ("--------------------------------------------")
+        print ("Encomenda que deseja ver (id = XXXX):", end=" ")
+        target_encomenda_id = str(input())
+        print ("--------------------------------------------")
+        specific_encomenda_path = builder.get_specific_encomenda_path(target_encomenda_id, ordered_deliveries)
+
+        if specific_encomenda_path:
+
+            with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    builder.highlight_path(specific_encomenda_path)
+
+            menu_bfs(caminho, lista_encomendas)
+        else:
+            print(f"Encomenda com ID {target_encomenda_id} não encontrada.")
+            menu_encomendas(caminho, lista_encomendas)
+        
+    elif input1 == 4:
+        builder = Build(caminho)
+        builder.expand_graph()
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='a_star')
+        menu_helper(lista_encomendas, ordered_deliveries, caminho)
+
+    elif input1 == 5:
+        menu_ninfo(caminho, lista_encomendas)
 
 
 #-----------------------------//menu novo\\---------------------------------
 
+def menu_dfs(caminho, lista_encomendas):
+    print ("---------------------------Procura em Profundidade---------------------------")
+    print ("|1 -> Caminho feito por cada encomenda                                      |")
+    print ("|2 -> Caminho feito por uma encomenda                                       |")
+    print ("|3 -> Desenho do caminho de uma encomenda em formato de  Grafo              |")
+    print ("|4 -> Informações                                                           |")
+    print ("|5 -> Sair                                                                  |")
+    print ("-----------------------------------------------------------------------------")
 
-def menu_ninfo(morada,caminho,peso, tempo):
-    print ("---------------------------Proura não informada--------------------------")
+    input1 = int (input())
+
+    if input1 == 1:
+        builder = Build(caminho)
+        builder.expand_graph()
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='dfs')
+        for i, path in enumerate(ordered_deliveries, start=1):
+            print(f'{path}')
+
+        menu_dfs(caminho, lista_encomendas)
+
+    if input1 == 2:
+
+        builder = Build(caminho)
+        builder.expand_graph()
+
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='dfs')
+        print("--------------------------------------------")
+        print("Encomenda que deseja ver (id = XXXX):", end=" ")
+        target_encomenda_id = str(input())
+        print("--------------------------------------------")
+        specific_encomenda_path = builder.get_specific_encomenda_path(target_encomenda_id, ordered_deliveries)
+
+        if specific_encomenda_path:
+            print(f"Caminho para a encomenda com ID {target_encomenda_id} : ", specific_encomenda_path)
+
+            menu_dfs(caminho, lista_encomendas)
+        else:
+            print(f"Encomenda com ID {target_encomenda_id} não encontrada.")
+
+            menu_principal(caminho)
+
+    elif input1 == 3:
+
+        builder = Build(caminho)
+        builder.expand_graph()
+
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='dfs')
+
+        print("--------------------------------------------")
+        print("Encomenda que deseja ver (id = XXXX):", end=" ")
+        target_encomenda_id = str(input())
+        print("--------------------------------------------")
+        specific_encomenda_path = builder.get_specific_encomenda_path(target_encomenda_id, ordered_deliveries)
+
+        if specific_encomenda_path:
+
+            with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    builder.highlight_path(specific_encomenda_path)
+
+            menu_dfs(caminho, lista_encomendas)
+        else:
+            print(f"Encomenda com ID {target_encomenda_id} não encontrada.")
+            menu_encomendas(caminho, lista_encomendas)
+        
+    elif input1 == 4:
+        builder = Build(caminho)
+        builder.expand_graph()
+        lista_encomendas_copia = lista_encomendas.copy()
+        ordered_deliveries = builder.calculate_and_print_best_path(0, lista_encomendas_copia, search_algorithm='a_star')
+        menu_helper(lista_encomendas, ordered_deliveries, caminho)
+
+    elif input1 == 5:
+        menu_ninfo(caminho, lista_encomendas)
+
+#-----------------------------//menu novo\\---------------------------------
+
+
+def menu_ninfo(caminho, lista_encomendas):
+    print ("---------------------------Procura não informada-------------------------")
     print ("|1 -> Procura em Profundidade                                           |")
     print ("|2 -> Proura em Largura                                                 |")
     print ("|3 -> Sair                                                              |")
-    print("--------------------------------------------------------------------------")
+    print ("-------------------------------------------------------------------------")
 
     input1 = int (input())
 
     if input1 == 1:
-        
-        builder = Build(caminho)
-        builder.expand_graph()
-        start_node = builder.get_node_by_id(0)
-        end_node = builder.get_node_by_id(morada)
-        if start_node and end_node:
-            dfs_path = builder.find_path_dfs(start_node.node_id, end_node.node_id)
 
-            if dfs_path:
-                menu_prints(caminho,dfs_path,peso, tempo)
-            else:
-                print("Caminho não encontrado.")
-
-            #menu_entrega()
-            menu()
-        else:
-            print("Nó inicial ou nó objetivo não encontrado.")
-            menu()
+        menu_dfs(caminho, lista_encomendas)
 
     elif input1 == 2:
-        builder = Build(caminho)
-        builder.expand_graph()
-        start_node = builder.get_node_by_id(0)
-        end_node = builder.get_node_by_id(morada)
-        if start_node and end_node:
-            bfs_path = builder.find_path_bfs(start_node.node_id, end_node.node_id)
+       
+        menu_bfs(caminho, lista_encomendas)
 
-            if bfs_path:
-                menu_prints(caminho,bfs_path,peso, tempo)
-            else:
-                print("Caminho não encontrado.")
-
-            #menu_entrega()
-            menu()
-        else:
-            print("Nó inicial ou nó objetivo não encontrado.")
-            menu()
+    elif input1 == 3:
+        menu_procura(caminho, lista_encomendas)
 
     else:
-        menu_procura(morada, caminho, peso, tempo)
+        menu()
 #-----------------------------//menu novo\\---------------------------------
 
 
-def menu_procura(morada, caminho, peso, tempo):
+def menu_procura(caminho, lista_encomendas):
     print ("--------------------------Proura do melhor Path--------------------------")
     print ("|1 -> Procura não informada                                             |")
     print ("|2 -> Procura informada                                                 |")
     print ("|3 -> Sair                                                              |")
-    print("--------------------------------------------------------------------------")
+    print ("-------------------------------------------------------------------------")
 
     
     input1 = int(input())
 
     if input1 == 1:
-        menu_ninfo(morada, caminho, peso, tempo)
+        menu_ninfo(caminho, lista_encomendas)
     elif input1 == 2:
-        menu_info(morada, caminho, peso, tempo)
+        menu_info(caminho, lista_encomendas)
     else:
-        menu_principal()
+        menu_principal(caminho)
 
 #-----------------------------//menu novo\\---------------------------------
 
+def menu_PlusEncomendas(caminho, lista_encomendas):
 
+    print ("-----------------------Deseja fazer mais encomendas-----------------------")
+    print ("|Sim                                                                     |") 
+    print ("|Não                                                                     |")
+    print ("--------------------------------------------------------------------------")
 
-def menu_preco(peso, tempo, morada, caminho):
-    print("--------------------------------------------------------------------------")
-    print("|     Aguarde, estamos a calcular quanto ficará a sua encomenda. . .     |")
-    encomenda_price = str(calcular_preco_encomenda(peso, tempo))
-    time.sleep(2)
-    print("|        A sua encomenda ficará a " + encomenda_price + "€ .                                  |")
-    print("---------------------------------------------------------------------------")
- 
-    menu_procura(morada, caminho, peso, tempo)
+    input1 = input()
 
+    if input1 in ["Sim", "sim", "SIM", "s", "S"]:
+        menu_encomendas(caminho, lista_encomendas)   
+    elif input1 in ["Não", "não", "NÃO", "n", "N", "nao", "Nao", "NAOs"]:
+        menu_procura(caminho, lista_encomendas)
 
+    else:
+        menu()
 #-----------------------------//menu novo\\---------------------------------
 
 
-def menu_encomendas (caminho):
+def menu_encomendas (caminho, lista_encomendas):
     print("------------------------Encomendas e especificações-----------------------")
-    print("|Em quanto tempo quer que a sua encomenda seja entregue (horas)          |") 
-    print("|Qual o peso da encomenda em KG?                                         |")
+    print("|Em quanto tempo quer que a sua encomenda seja entregue (minutos)        |") 
+    print("|Qual o peso da encomenda em KG                                          |")
     print("|Qual o volume da encomenda em cm3                                       |")
     print("|Qual a sua morada (número do nodo)                                      |")
     print("--------------------------------------------------------------------------")
         
-    print ("tempo : ")
-    tempo = float (input())
+    print("Tempo:", end=" ")
+    tempo_input = input()
+    try:
+        tempo = int(tempo_input)
+    except ValueError:
+        print("Entrada inválida. Certifique-se de inserir um número válido.")
+        menu_encomendas(caminho)
+
+    print("Peso:", end=" ")
+    peso_input = input()
+    try:
+        peso = float(peso_input.replace(',', '.'))
+    except ValueError:
+        print("Entrada inválida. Certifique-se de inserir um número válido.")
+        menu_encomendas(caminho)
+
+
+    print("Volume:", end=" ")
+    volume_input = input()
+    try:
+        volume = float(volume_input.replace(',', '.'))
+    except ValueError:
+        print("Entrada inválida. Certifique-se de inserir um número válido.")
+        menu_encomendas(caminho)
+
+    print("Morada:", end=" ")
+    morada_input = input()
+    try:
+        morada = int(morada_input)
+    except ValueError:
+        print("Entrada inválida. Certifique-se de inserir um número válido.")
+        menu_encomendas(caminho)
     
-    print ("peso: ")
-    peso = float (input())
-
-    print ("volume: ")
-    volume = float (input())
-
-    print ("morada: ")
-    morada = int (input())
-
-    menu_preco(peso, tempo, morada, caminho)
+    encomenda = Encomenda (peso, volume, tempo, morada)
+    lista_encomendas.append(encomenda)
+    menu_PlusEncomendas(caminho, lista_encomendas)
 
 
 #-----------------------------//menu novo\\---------------------------------
@@ -219,7 +590,7 @@ def menu_principal (caminho):
     print("------------------------------Menu Principal------------------------------")
     print("|1 -> Ver Nodos e Conexões                                               |")
     print("|2 -> Ver o mapa em forma de grafo                                       |")
-    print("|3 -> Fazer uma encomenda                                                |")
+    print("|3 -> Fazer encomendas                                                   |")
     print("|4 -> Ver o que acontece quando há concorrência e choques                |") #implementar em último, comecemos pelo básico
     print("|5 -> Sair                                                               |")
     print("--------------------------------------------------------------------------")
@@ -231,27 +602,20 @@ def menu_principal (caminho):
         builder = Build(caminho)
         builder.expand_graph()
         builder.print_graph()
-
-        '''
-        repeated_nodes = builder.find_repeated_nodes(nodles)
-        if repeated_nodes:
-            print("Nós repetidos:")
-            for node in repeated_nodes:
-                print(f"Node {node.node_id} - Coordenadas: ({node.x}, {node.y})")
-            '''
-        
         menu_principal(caminho)
 
     elif opcao == 2:
 
         builder = Build(caminho)
         builder.expand_graph()
-        builder.visualize_graph()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            builder.visualize_graph()
         menu_principal(caminho)
 
     elif opcao == 3:
-
-        menu_encomendas(caminho)
+        lista_encomendas = []
+        menu_encomendas(caminho, lista_encomendas)
 
     elif opcao == 4:
         print("ainda não está implementado")

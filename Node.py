@@ -3,7 +3,11 @@ class Node:
         self.node_id = int (node_id)
         self.x = x
         self.y = y
-       # self.connections = []
+
+    def __lt__(self, other):
+        
+        return self.node_id < other.node_id
+
     
 
 

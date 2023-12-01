@@ -1,28 +1,31 @@
 import datetime
 
-def calcular_preco_encomenda(peso, tempo):
+def calcular_preco_encomenda(encomenda, distancia):
+    peso = encomenda.get_peso()
+    tempo = encomenda.get_tempo()
 
     preco_base = 5
 
-    if peso <= 1:
-        preco_final = preco_base
-    elif peso <= 5:
-        preco_final = preco_base + 3
-    else:
-        preco_final = preco_base + 5
+    fator_peso = 0.2
+    fator_tempo = 2.0
+    fator_distancia = 0.1 
 
-    if tempo < 1:
-        preco_final += 10
-    elif tempo < 2:
-        preco_final +=5
+    preco_peso = peso * fator_peso
+    preco_tempo = (100 / tempo) ** fator_tempo
+    preco_distancia = distancia * fator_distancia
+
+    preco_final = preco_base + preco_peso + preco_tempo + preco_distancia
 
     return preco_final
 
-def escolher_meio_transporte(distancia, tempo, peso):
+
+def escolher_meio_transporte(distancia, encomenda):
+    peso = encomenda.get_peso()
+    tempo = encomenda.get_tempo()
     # Características dos meios de transporte
     bicicleta = {'peso_limite': 5, 'velocidade': 10, 'perda_velocidade': 0.6, 'poluicao': 0}
-    mota = {'peso_limite': 20, 'velocidade': 35, 'perda_velocidade': 0.5, 'poluicao': 0.3}
-    carro = {'peso_limite': 100, 'velocidade': 50, 'perda_velocidade': 0.1, 'poluicao': 2.3}
+    mota = {'peso_limite': 20, 'velocidade': 35, 'perda_velocidade': 0.5, 'poluicao': 5}
+    carro = {'peso_limite': 100, 'velocidade': 50, 'perda_velocidade': 0.1, 'poluicao': 13}
 
     # Verificar se é possível dividir a encomenda em partes menores
     if peso > carro['peso_limite']:
@@ -49,11 +52,13 @@ def escolher_meio_transporte(distancia, tempo, peso):
     else:
         return "Carro"
     
-def calcular_co2_atraso(distancia, tempo, peso, meio_transporte):
+def calcular_co2_atraso(distancia, encomenda, meio_transporte):
+    peso = encomenda.get_peso()
+    tempo = encomenda.get_tempo()
     # Características dos meios de transporte
     bicicleta = {'poluicao': 0}
-    mota = {'poluicao': 0.3}
-    carro = {'poluicao': 2.3}
+    mota = {'poluicao': 5}
+    carro = {'poluicao': 13}
 
     # Calcular o atraso em horas no formato HH:MM
     atraso_horas = int(tempo)
