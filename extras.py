@@ -19,60 +19,46 @@ def calcular_preco_encomenda(encomenda, distancia):
     return preco_final
 
 
-def escolher_meio_transporte(distancia, encomenda):
-    peso = encomenda.get_peso()
-    tempo = encomenda.get_tempo()
-    # Características dos meios de transporte
+def escolher_meio_transporte(peso_total_encomendas, encomenda):
+
+
     bicicleta = {'peso_limite': 5, 'velocidade': 10, 'perda_velocidade': 0.6, 'poluicao': 0}
     mota = {'peso_limite': 20, 'velocidade': 35, 'perda_velocidade': 0.5, 'poluicao': 5}
     carro = {'peso_limite': 100, 'velocidade': 50, 'perda_velocidade': 0.1, 'poluicao': 13}
+    camiao = {'peso_limite': 500, 'velocidade': 80, 'perda_velocidade': 0.05, 'poluicao': 25}
 
-    # Verificar se é possível dividir a encomenda em partes menores
-    if peso > carro['peso_limite']:
+    if peso_total_encomendas > 100:
+        return "Camião"
+    elif 20 <= peso_total_encomendas <= 100:
         return "Carro"
-
-    # Calcular o tempo atrasado para cada meio de transporte
-    tempo_atraso_bicicleta = max(0, tempo - (distancia / bicicleta['velocidade']))
-    tempo_atraso_mota = max(0, tempo - (distancia / mota['velocidade']))
-    tempo_atraso_carro = max(0, tempo - (distancia / carro['velocidade']))
-
-    # Calcular satisfação do cliente considerando a ecologia
-    satis_custo_bicicleta = tempo_atraso_bicicleta * bicicleta['poluicao']
-    satis_custo_mota = tempo_atraso_mota * mota['poluicao']
-    satis_custo_carro = tempo_atraso_carro * carro['poluicao']
-
-    # Escolher meio de transporte com base nas condições
-    if peso <= bicicleta['peso_limite'] and tempo_atraso_bicicleta <= tempo:
+    elif 5 <= peso_total_encomendas < 20:
+        return "Mota"
+    else:
         return "Bicicleta"
-    elif peso <= mota['peso_limite'] and tempo_atraso_mota <= tempo:
-        if satis_custo_mota <= satis_custo_carro:
-            return "Mota"
-        else:
-            return "Carro"
-    else:
-        return "Carro"
     
-def calcular_co2_atraso(distancia, encomenda, meio_transporte):
-    peso = encomenda.get_peso()
-    tempo = encomenda.get_tempo()
-    # Características dos meios de transporte
-    bicicleta = {'poluicao': 0}
-    mota = {'poluicao': 5}
-    carro = {'poluicao': 13}
+def calcular_tempo_viagem_total(distancia_total, meio_transporte, peso_total_encomendas, paragens):
+    velocidade = {'Bicicleta': 10, 'Mota': 35, 'Carro': 50, 'Camião': 80}
+    perda_velocidade = {'Bicicleta': 0.6, 'Mota': 0.5, 'Carro': 0.1, 'Camião': 0.05}
+    
+    andamento = distancia_total * 10
+    
+    tempo_viagem = andamento / max(velocidade[meio_transporte] - perda_velocidade[meio_transporte] * peso_total_encomendas, 1)
+    
+    tempo_viagem += 5 * paragens 
 
-    # Calcular o atraso em horas no formato HH:MM
-    atraso_horas = int(tempo)
-    atraso_minutos = int((tempo - atraso_horas) * 60)
-    atraso = "{:02}:{:02}".format(atraso_horas, atraso_minutos)
 
-    # Calcular a quantidade de CO2 emitido
-    if meio_transporte == "Bicicleta":
-        co2_emitido = distancia * bicicleta['poluicao']
-    elif meio_transporte == "Mota":
-        co2_emitido = distancia * mota['poluicao']
-    elif meio_transporte == "Carro":
-        co2_emitido = distancia * carro['poluicao']
-    else:
-        co2_emitido = 0
+    return tempo_viagem
 
-    return co2_emitido, atraso
+def calcular_co2(distancia, meio_transporte):
+    poluicao = {'Bicicleta': 0, 'Mota': 5, 'Carro': 13, 'Camião': 25}
+    return distancia * poluicao[meio_transporte]
+
+def calcular_peso_total_encomendas(lista_encomendas):
+        peso_total = sum(encomenda.peso for encomenda in lista_encomendas)
+        return peso_total
+
+def minutos_para_horas_minutos(minutos):
+    horas = int(minutos // 60)
+    minutos = int(minutos % 60)
+    return "{:02d}:{:02d}".format(horas, minutos)
+

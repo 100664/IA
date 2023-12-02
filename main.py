@@ -60,27 +60,27 @@ def menu_entrega(lista_encomendas,  ordered_deliveries, caminho):
     builder = Build(caminho)
     builder.expand_graph()
     distancia = 0
-    co2 = 0
-    tempo = 0
-    print("menu_entrega1: ",ordered_deliveries)
-    print("menu_entrega2: ",lista_encomendas)
-    for encomenda_id, specific_encomenda_path in ordered_deliveries:
-        encomenda = builder.obter_encomenda_por_id(encomenda_id, lista_encomendas)
 
-        distancia += len (specific_encomenda_path)
-        #transporte = escolher_meio_transporte(len(specific_encomenda_path),encomenda)
-        #co2_helper, tempo_atraso = calcular_co2_atraso(len(specific_encomenda_path),encomenda, transporte) #mudar isto
-        co2 += 1
-        tempo += 1
-        transporte = "Carro"
-        
-                    
+    lista_encomendas_copia = lista_encomendas.copy()
+
+    for encomenda_id, specific_encomenda_path in ordered_deliveries:
+        encomenda = builder.obter_encomenda_por_id(encomenda_id, lista_encomendas_copia)
+
+        distancia += len (specific_encomenda_path) 
+    
+    peso_total = calcular_peso_total_encomendas(lista_encomendas)
+    transporte = escolher_meio_transporte(peso_total, encomenda)
+    tempo_total = calcular_tempo_viagem_total(distancia, transporte, peso_total, len(lista_encomendas))
+    tempo = minutos_para_horas_minutos(tempo_total)
+    co2 = calcular_co2(distancia, transporte)            
     print ("------------------------------Dados da Entrega----------------------------")
-    print (f"| Distância percorrida em KM : {distancia} KM                                     |")
-    print (f"| Meio de transporte usado na entrega:  {transporte}                           |")
-    print (f"| CO2 gasto para a entrega: {co2} CM3 de CO2                               |")
-    print (f"| Atraso da encomenda (HH.MM): {tempo}                                        |")
+    print (f"| Peso total transportado : {peso_total} KG                                       |")
+    print (f"| Distância percorrida em KM : {distancia*10} KM                                     |")
+    print (f"| Meio de transporte usado na entrega: {transporte}                             |")
+    print (f"| CO2 gasto para a entrega: {co2} CM3 de CO2                                |")
+    print (f"| Tempo Gasto na Viagem (HH.MM): {tempo}                                    |")
     print("--------------------------------------------------------------------------")
+
 
     menu_avaliacao(lista_encomendas, ordered_deliveries, caminho)
 
