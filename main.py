@@ -8,6 +8,167 @@ from build import *
 from extras import *
 import warnings
 
+#-----------------------------//menu novo 2nd player\\---------------------------------
+
+def menu_mediador(caminho, path1, path2, colissions):
+    print("-----------------------------Mediador-----------------------------")
+    print("|1 -> Ver Grafo da transportadora 1                              |")
+    print("|2 -> Ver Grafo da transportadora 2                              |")
+    print("|3 -> Ver caminho da transportadora 1                            |")
+    print("|4 -> Ver caminho da transportadora 2                            |")
+    print("|5 -> Sair                                                       |")
+    print("------------------------------------------------------------------")
+    input1 = int (input())
+
+    if input1 == 1:
+        builder = Build(caminho)
+        builder.expand_graph()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            builder.highlight_path(path1)
+    
+    elif input1 == 2:
+        builder = Build(caminho)
+        builder.expand_graph()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            builder.highlight_path(path2, colissions)
+    
+    elif input1 == 3:
+        builder = Build(caminho)
+        builder.expand_graph()
+        print(path1)
+    
+    elif input1 == 4:
+        builder = Build(caminho)
+        builder.expand_graph()
+        print(path2)
+    
+    elif input1 == 5:
+        menu_principal(caminho)
+
+    else:
+        menu_mediador(caminho, path1, path2, colissions)
+    
+    menu_mediador(caminho, path1, path2, colissions)
+
+        
+
+#-----------------------------//menu novo 2nd player\\---------------------------------
+
+def menu_transportadora2(caminho, morada1, morada2, path1):
+    print("-----------------------------Transportadora 2-----------------------------")
+    print("|1 -> DFS (Depth-first search)                                           |")
+    print("|2 -> BFS (Breadth-first search)                                         |")
+    print("|3 -> Procura A*                                                         |")
+    print("|4 -> Procura Gulosa                                                     |")
+    print("|5 -> Mudar a procura da transportadora 1                                |")  
+    print("|6 -> Sair                                                               |")
+    print("--------------------------------------------------------------------------")
+    input1 = int (input())
+
+    if input1 == 1:
+        builder = Build(caminho)
+        builder.expand_graph()
+        path2, colissions = builder.dfs_2nd(0, morada2, path1)
+
+    elif input1 == 2:
+        builder = Build(caminho)
+        builder.expand_graph()
+
+        path2, colissions = builder.bfs_2nd(0, morada2, path1)
+    elif input1 == 3:
+        builder = Build(caminho)
+        builder.expand_graph()
+        path2, colissions = builder.a_star_2nd(0, morada2, path1)
+
+    elif input1 == 4:
+        builder = Build(caminho)
+        builder.expand_graph()
+        path2, colissions = builder.greedy_best_first_search_2nd(0, morada2, path1)
+
+    elif input1 == 5:
+        menu_transportadora1(caminho, morada1, morada2)
+
+    elif input1 == 6:
+        menu_principal(caminho)
+
+    else:
+        menu_transportadora2(caminho,morada1, morada2, path1)
+    
+    menu_mediador(caminho, path1, path2, colissions)
+
+#-----------------------------//menu novo 2nd player\\---------------------------------
+
+def menu_transportadora1(caminho, morada1, morada2):
+    print("-----------------------------Transportadora 1-----------------------------")
+    print("|1 -> DFS (Depth-first search)                                           |")
+    print("|2 -> BFS (Breadth-first search)                                         |")
+    print("|3 -> Procura A*                                                         |")
+    print("|4 -> Procura Gulosa                                                     |")
+    print("|5 -> Sair                                                               |")
+    print("--------------------------------------------------------------------------")
+
+    input1 = int (input())
+
+    if input1 == 1:
+        builder = Build(caminho)
+        builder.expand_graph()
+        path1 = builder.find_path_dfs(0, morada1)
+
+    elif input1 == 2:
+        builder = Build(caminho)
+        builder.expand_graph()
+        path1 = builder.find_path_bfs(0, morada1)
+
+    elif input1 == 3:
+        builder = Build(caminho)
+        builder.expand_graph()
+        path1 = builder.a_star(0, morada1)
+
+    elif input1 == 4:
+        builder = Build(caminho)
+        builder.expand_graph()
+        path1 = builder.greedy_best_first_search(0, morada1)
+
+    elif input1 == 5:
+        menu_principal(caminho)
+
+    else:
+        menu_transportadora1(caminho, morada1, morada2)
+
+    menu_transportadora2(caminho, morada1, morada2, path1)
+
+#-----------------------------//menu novo 2nd player\\---------------------------------
+
+def menu_encomendas_2nd (caminho):
+    print("-----------------------------Encomendas_Colisões---------------------------")
+    print("| Como o objetivo é ver como o programa responde às colisões, vamos criar |")
+    print("|  duas transportadoras, cada uma com o seu caminho. E ver como reagem à  |")
+    print("|         concorrência. Para tal vamos 'ignorar' as encomendas            |")
+    print("---------------------------------------------------------------------------")
+    print("| Qual a morada da encomenda da primeira transportadora (número do nodo)  |")
+    print("|  Qual a morada da encomenda da segunda transportadora (número do nodo)  |")    
+    print("---------------------------------------------------------------------------")
+        
+    print("Morada 1:", end=" ")
+    morada_input1 = input()
+    try:
+        morada1 = int(morada_input1)
+    except ValueError:
+        print("Entrada inválida. Certifique-se de inserir um número válido.")
+        menu_encomendas_2nd(caminho)
+
+    print("Morada 2:", end=" ")
+    morada_input2 = input()
+    try:
+        morada2 = int(morada_input2)
+    except ValueError:
+        print("Entrada inválida. Certifique-se de inserir um número válido.")
+        menu_encomendas_2nd(caminho)
+    
+    menu_transportadora1(caminho, morada1, morada2)
+
 #-----------------------------//menu novo\\---------------------------------
 
 def menu_helper2 (lista_encomendas, caminho):
@@ -618,7 +779,7 @@ def menu_principal (caminho):
         menu_encomendas(caminho, lista_encomendas)
 
     elif opcao == 4:
-        print("ainda não está implementado")
+        menu_encomendas_2nd(caminho)
 
     elif opcao ==5:
         menu()
