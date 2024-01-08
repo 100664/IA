@@ -2,11 +2,10 @@ class Encomenda:
 
     total_encomendas = 0 
 
-    def __init__(self, peso, volume, tempo, morada):
+    def __init__(self, peso, tempo, morada):
         Encomenda.total_encomendas += 1
         self.id = Encomenda.total_encomendas 
         self.peso = peso
-        self.volume = volume
         self.tempo = tempo
         self.morada = morada
     
@@ -15,9 +14,6 @@ class Encomenda:
 
     def get_peso(self):
         return self.peso
-
-    def get_volume(self):
-        return self.volume
 
     def get_id(self):
         return self.id

@@ -4,6 +4,7 @@ from Encomenda import *
 
 import math
 from queue import Queue, PriorityQueue
+import heapq
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -46,10 +47,12 @@ class Build:
     def heuristic(self, node, goal_node):
         return self.manhattan_distance(node, goal_node)
     
-    def heuristic_2n(self, node, goal_node, estimated_time, priority_factor=1.0):
-        manhattan_dist = self.manhattan_distance(node, goal_node)
-        time_penalty = max(0, estimated_time - node.tempo)  # Penalização para o tempo não cumprido
-        return manhattan_dist + priority_factor * time_penalty
+    def chebyshev_distance(self, node1, node2):
+        return max(abs(node1.x - node2.x), abs(node1.y - node2.y))
+
+    def heuristic_chebyshev(self, node, goal_node):
+        return self.chebyshev_distance(node, goal_node)
+    
     
     @staticmethod
     def obter_encomenda_por_id(id_input, lista_encomendas):
@@ -64,6 +67,19 @@ class Build:
                 return True
         return False
     
+    def reconstruct_path(self, came_from, start_node_id, goal_node_id):
+        current_node_id = goal_node_id
+        path = [current_node_id]
+
+        while current_node_id != start_node_id:
+            current_node_id = came_from[current_node_id]
+            path.insert(0, current_node_id)
+
+        return path
+    
+    def euclidean_distance(self, node1, node2):
+        return math.sqrt((node1.x - node2.x)**2 + (node1.y - node2.y)**2)
+
 #--------------------------------criação dos nodos e conexões----------------#
 
     def expand_graph(self):
@@ -133,7 +149,7 @@ class Build:
             neighbor_node = self.coordinates_to_node.get(coordinates)
 
             if neighbor_node:
-                # Conecte os nodos usando listas para evitar duplicatas
+                # Conecte os nodos usando listas para evitar duplicatasa
                 if neighbor_node.node_id not in self.graph[node.node_id]:
                     self.graph[node.node_id].append(neighbor_node.node_id)
                 if node.node_id not in self.graph[neighbor_node.node_id]:
@@ -233,7 +249,7 @@ class Build:
 
 #-----------------------função de procura informada (A*)---------------------------------#
 
-    def a_star(self, start_node_id, goal_node_id):
+    def a_star(self, start_node_id, goal_node_id, heuristic_type="manhattan"):
         start_node = self.get_node_by_id(start_node_id)
         goal_node = self.get_node_by_id(goal_node_id)
         
@@ -256,7 +272,14 @@ class Build:
 
                     if tentative_g_score < g_score[neighbor_node.node_id]:
                         g_score[neighbor_node.node_id] = tentative_g_score
-                        priority = tentative_g_score + self.manhattan_distance(neighbor_node, goal_node)
+
+                        if heuristic_type == "manhattan":
+                            priority = tentative_g_score + self.manhattan_distance(neighbor_node, goal_node)
+                        elif heuristic_type == "chebyshev":
+                            priority = tentative_g_score + self.chebyshev_distance(neighbor_node, goal_node)
+                        else:
+                            raise ValueError("Invalid heuristic type")
+
                         open_set.put((priority, neighbor_node))
                         came_from[neighbor_node.node_id] = current_node.node_id
 
@@ -264,26 +287,23 @@ class Build:
         else:
             print("Nó inicial ou nó objetivo não encontrado.")
             return None
+           
+#-----------------------função greedy ---------------------------------#   
 
-    def reconstruct_path(self, came_from, start_node_id, goal_node_id):
-        current_node_id = goal_node_id
-        path = [current_node_id]
-
-        while current_node_id != start_node_id:
-            current_node_id = came_from[current_node_id]
-            path.insert(0, current_node_id)
-
-        return path
-    
-#------------------------------função de procura informada (greedy)-----------------------------------------#
-
-    def greedy_best_first_search(self, start_node_id, goal_node_id):
+    def greedy_best_first_search(self, start_node_id, goal_node_id, heuristic_type="manhattan"):
         start_node = self.get_node_by_id(start_node_id)
         goal_node = self.get_node_by_id(goal_node_id)
         
         if start_node and goal_node:
             open_set = PriorityQueue()
-            open_set.put((self.heuristic(start_node, goal_node), start_node))
+            
+            if heuristic_type == "manhattan":
+                open_set.put((self.heuristic(start_node, goal_node), start_node))
+            elif heuristic_type == "chebyshev":
+                open_set.put((self.heuristic_chebyshev(start_node, goal_node), start_node))
+            else:
+                raise ValueError("Invalid heuristic type")
+
             came_from = {}
 
             while not open_set.empty():
@@ -296,18 +316,26 @@ class Build:
                     neighbor_node = self.get_node_by_id(neighbor_id)
 
                     if neighbor_node.node_id not in came_from:
-                        open_set.put((self.heuristic(neighbor_node, goal_node), neighbor_node))
+                        if heuristic_type == "manhattan":
+                            open_set.put((self.manhattan_distance(neighbor_node, goal_node), neighbor_node))
+                        elif heuristic_type == "chebyshev":
+                            open_set.put((self.chebyshev_distance(neighbor_node, goal_node), neighbor_node))
+                        else:
+                            raise ValueError("Invalid heuristic type")
+
                         came_from[neighbor_node.node_id] = current_node.node_id
 
             return None
         else:
             print("Nó inicial ou nó objetivo não encontrado.")
             return None
+
+
         
     
 #-----------------------função de print (just 1)---------------------------------#       
 
-    def print_paths_for_all_encomendas(self, start_node_id, encomendas, search_algorithm='dfs'):
+    def print_paths_for_all_encomendas(self, start_node_id, encomendas, search_algorithm='dfs', heuristic_type = "manhattan"):
         all_paths = {}
         
         for encomenda in encomendas:
@@ -319,14 +347,15 @@ class Build:
             elif search_algorithm == 'bfs':
                 path = self.bfs(start_node_id, goal_node_id)
             elif search_algorithm == 'a_star':
-                path = self.a_star(start_node_id, goal_node_id)
+                path = self.a_star(start_node_id, goal_node_id, heuristic_type)
             elif search_algorithm == 'greedy':
-                path = self.greedy_best_first_search(start_node_id, goal_node_id)
+                path = self.greedy_best_first_search(start_node_id, goal_node_id, heuristic_type)
 
             if path:
                 all_paths[encomenda.id] = path
             else:
                 print(f"Não foi possível encontrar um caminho para a encomenda com ID {encomenda.id}")
+                return {}
 
         return all_paths
 
@@ -335,104 +364,40 @@ class Build:
         best_encomenda_id, best_path = min(all_paths.items(), key=lambda item: (
             len(item[1]),
             getattr(item[1][-1], 'get_peso', lambda: 0)(),
-            getattr(item[1][-1], 'get_volume', lambda: 0)(),
             getattr(item[1][-1], 'get_id', lambda: 0)()
         ), default=(None, None))
         return best_encomenda_id, best_path
     
-    def calculate_and_print_best_path(self, ponto_inicial, lista_encomendas, search_algorithm='dfs'):
+    def calculate_and_print_best_path(self, ponto_inicial, lista_encomendas, search_algorithm='dfs', heuristic_type = "manhattan"):
         ordered_deliveries = []
         ponto_atual = ponto_inicial
 
         while lista_encomendas:
-            all_paths = self.print_paths_for_all_encomendas(ponto_atual, lista_encomendas, search_algorithm)
-            best_id, best_path = self.find_best_path(all_paths)
+            all_paths = self.print_paths_for_all_encomendas(ponto_atual, lista_encomendas, search_algorithm,heuristic_type)
+            if (all_paths == {}):
+                return []
+            else:
+                best_id, best_path = self.find_best_path(all_paths)
 
-            if best_id:
-                best_encomenda = next(encomenda for encomenda in lista_encomendas if encomenda.get_id() == best_id)
-                ordered_deliveries.append((best_encomenda.get_id(), best_path))
-                lista_encomendas.remove(best_encomenda)
-                ponto_atual = best_encomenda.get_morada()
+                if best_id:
+                    best_encomenda = next(encomenda for encomenda in lista_encomendas if encomenda.get_id() == best_id)
+                    ordered_deliveries.append((best_encomenda.get_id(), best_path))
+                    lista_encomendas.remove(best_encomenda)
+                    ponto_atual = best_encomenda.get_morada()
         return ordered_deliveries
     
     def get_specific_encomenda_path(self, target_encomenda_id, ordered_deliveries):
         target_encomenda_id = str(target_encomenda_id)
-        for id, path in ordered_deliveries:
-            if str(id) == target_encomenda_id:
+        for encomenda_id, path in ordered_deliveries:
+            if str(encomenda_id) == target_encomenda_id:
                 return path
-        return []    
+        return []
+  
 
- 
-#----------------------------------função de procura informada (A*)- outra Heurística---------------------------------#
-
-    def a_star_heuristica2(self, start_node_id, goal_node_id, estimated_time):
-        start_node = self.get_node_by_id(start_node_id)
-        goal_node = self.get_node_by_id(goal_node_id)
-        
-        if start_node and goal_node:
-            open_set = PriorityQueue()
-            open_set.put((0, start_node))
-            came_from = {}
-            g_score = {node.node_id: math.inf for node in self.nodes}
-            g_score[start_node.node_id] = 0
-
-            while not open_set.empty():
-                _, current_node = open_set.get()
-
-                if current_node == goal_node:
-                    return self.reconstruct_path(came_from, start_node_id, goal_node_id)
-
-                for neighbor_id in self.graph[current_node.node_id]:
-                    neighbor_node = self.get_node_by_id(neighbor_id)
-                    tentative_g_score = g_score[current_node.node_id] + 1
-
-                    if tentative_g_score < g_score[neighbor_node.node_id]:
-                        g_score[neighbor_node.node_id] = tentative_g_score
-                        priority = (
-                            tentative_g_score +
-                            self.heuristic_2n(neighbor_node, goal_node, estimated_time)
-                        )
-                        open_set.put((priority, neighbor_node))
-                        came_from[neighbor_node.node_id] = current_node.node_id
-
-            return None
-        else:
-            print("Nó inicial ou nó objetivo não encontrado.")
-            return None
-
-    
-#-----------------------função de procura informada greedy - outra heurística---------------------------------#
-
-    def greedy_heuristica2(self, start_node_id, goal_node_id, estimated_time):
-        start_node = self.get_node_by_id(start_node_id)
-        goal_node = self.get_node_by_id(goal_node_id)
-        
-        if start_node and goal_node:
-            open_set = PriorityQueue()
-            open_set.put((self.heuristic_2n(start_node, goal_node, estimated_time), start_node))
-            came_from = {}
-
-            while not open_set.empty():
-                _, current_node = open_set.get()
-
-                if current_node == goal_node:
-                    return self.reconstruct_path(came_from, start_node_id, goal_node_id)
-
-                for neighbor_id in self.graph[current_node.node_id]:
-                    neighbor_node = self.get_node_by_id(neighbor_id)
-
-                    if neighbor_node.node_id not in came_from:
-                        open_set.put((self.heuristic_2n(neighbor_node, goal_node, estimated_time), neighbor_node))
-                        came_from[neighbor_node.node_id] = current_node.node_id
-
-            return None
-        else:
-            print("Nó inicial ou nó objetivo não encontrado.")
-            return None
-    
 #-----------------------função de procura não Informada - BFS (evita colisões)---------------------------------#
 
     def bfs_2nd(self, start_node_id, goal_node_id, player1_path):
+        # Inicializa as variáveis
         visited = set()
         queue = Queue()
         queue.put([start_node_id])
@@ -448,118 +413,128 @@ class Build:
                 if node_id == goal_node_id:
                     return path, collisions
 
-                for neighbor_id in self.graph[node_id]:
-                    new_path = list(path)
-                    new_path.append(neighbor_id)
-
+                if node_id != 0:  # Ignora o nodo especial 0
                     # Verificar colisões com o caminho do player 1
-                    if neighbor_id in player1_path:
-                        collisions.append(neighbor_id)
+                    if self.check_collision([node_id], player1_path):
+                        collisions.append(node_id)
+                        continue  # Ignora este nodo e tenta próximo
 
-                    queue.put(new_path)
+                for neighbor_id in self.graph[node_id]:
+                    if neighbor_id not in visited:
+                        new_path = list(path)
+                        new_path.append(neighbor_id)
+                        queue.put(new_path)
 
-        return None, collisions
-    
+        return [], collisions
+
+    def check_collision(self, path, player1_path):
+        for node_id in path:
+            if node_id in player1_path:
+                return True
+        return False
+
+        
 #-----------------------função de procura informada - DFS (evita colisões)---------------------------------#
     
-    def dfs_2nd(self, start_node_id, goal_node_id, player1_path, visited=None, path=None, collisions=None):
-        if visited is None:
-            visited = set()
-        if path is None:
-            path = []
-        if collisions is None:
-            collisions = []
+    def dfs_2nd(self, start_node_id, goal_node_id, player1_path):
+        visited = set()
+        stack = [ [start_node_id] ]
+        collisions = []  # Lista para rastrear os nodos de colisão
 
-        visited.add(start_node_id)
-        path = path + [start_node_id]
+        while stack:
+            path = stack.pop()
+            node_id = path[-1]
 
-        if start_node_id == goal_node_id:
-            return path, collisions
+            if node_id not in visited:
+                visited.add(node_id)
 
-        for neighbor_id in self.graph[start_node_id]:
-            if neighbor_id not in visited:
-                new_path, new_collisions = self.dfs_2nd(neighbor_id, goal_node_id, player1_path, visited, path, collisions)
+                if node_id == goal_node_id:
+                    return path, collisions
 
-                # Adicionar colisões ao longo do caminho do player 1
-                for collision_node in new_collisions:
-                    if collision_node not in collisions and collision_node in player1_path:
-                        collisions.append(collision_node)
+                if node_id != 0:  # Ignora o nodo especial 0
+                    # Verificar colisões com o caminho do player 1
+                    if self.check_collision([node_id], player1_path):
+                        collisions.append(node_id)
+                        continue  # Ignora este nodo e tenta próximo
 
-                if new_path:
-                    return new_path, collisions
+                # Adiciona vizinhos não visitados à pilha
+                for neighbor_id in self.graph[node_id]:
+                    if neighbor_id not in visited:
+                        new_path = list(path)
+                        new_path.append(neighbor_id)
+                        stack.append(new_path)
 
-        return None, collisions
+        return [], collisions
 
 #-----------------------função de procura informada - A* (evita colisões)---------------------------------#
 
-    def a_star_2nd(self, start_node_id, goal_node_id, player1_path):
-        start_node = self.get_node_by_id(start_node_id)
-        goal_node = self.get_node_by_id(goal_node_id)
-        
-        if start_node and goal_node:
-            open_set = PriorityQueue()
-            open_set.put((0, start_node))
-            came_from = {}
-            g_score = {node.node_id: math.inf for node in self.nodes}
-            g_score[start_node.node_id] = 0
+    def a_estrela_2nd(self, start_node_id, goal_node_id, player1_path):
+        open_set = [(0, start_node_id, [])]  # (f_cost, node_id, path)
+        closed_set = set()
+        collisions = []  # Lista para rastrear os nodos de colisão
 
-            collisions = []
+        while open_set:
+            f_cost, current_node_id, path = heapq.heappop(open_set)
 
-            while not open_set.empty():
-                _, current_node = open_set.get()
+            if current_node_id in closed_set:
+                continue
 
-                if current_node == goal_node:
-                    return self.reconstruct_path(came_from, start_node_id, goal_node_id), collisions
+            path = path + [current_node_id]
 
-                for neighbor_id in self.graph[current_node.node_id]:
-                    neighbor_node = self.get_node_by_id(neighbor_id)
-                    tentative_g_score = g_score[current_node.node_id] + 1
+            if current_node_id == goal_node_id:
+                return path, collisions
 
-                    if tentative_g_score < g_score[neighbor_node.node_id]:
-                        g_score[neighbor_node.node_id] = tentative_g_score
-                        priority = tentative_g_score + self.manhattan_distance(neighbor_node, goal_node)
-                        open_set.put((priority, neighbor_node))
-                        came_from[neighbor_node.node_id] = current_node.node_id
+            closed_set.add(current_node_id)
 
-                        # Verificar colisão com o caminho do jogador 1
-                        if neighbor_node.node_id in player1_path and neighbor_node.node_id not in collisions:
-                            collisions.append(neighbor_node.node_id)
+            if current_node_id != 0:  # Ignora o nodo especial 0
+                # Verificar colisões com o caminho do player 1
+                if self.check_collision([current_node_id], player1_path):
+                    collisions.append(current_node_id)
+                    continue  # Ignora este nodo e tenta próximo
 
-            return None, collisions
+            for neighbor_id in self.graph[current_node_id]:
+                if neighbor_id not in closed_set:
+                    g_cost = len(path)
+                    h_cost = self.heuristic(self.get_node_by_id(neighbor_id), self.get_node_by_id(goal_node_id))
+                    f_cost = g_cost + h_cost
+                    heapq.heappush(open_set, (f_cost, neighbor_id, path))
+
+        return [], collisions
     
 #-----------------------função de procura informada - greedy (evita colisões)---------------------------------#
 
-    def greedy_best_first_search_2nd(self, start_node_id, goal_node_id, player1_path):
-        start_node = self.get_node_by_id(start_node_id)
-        goal_node = self.get_node_by_id(goal_node_id)
-        
-        if start_node and goal_node:
-            open_set = PriorityQueue()
-            open_set.put((self.heuristic(start_node, goal_node), start_node))
-            came_from = {}
+    def greedy_2nd(self, start_node_id, goal_node_id, player1_path):
+        open_set = [(0, start_node_id, [])]  # (h_cost, node_id, path)
+        closed_set = set()
+        collisions = []  # Lista para rastrear os nodos de colisão
 
-            collisions = []
+        while open_set:
+            h_cost, current_node_id, path = heapq.heappop(open_set)
 
-            while not open_set.empty():
-                _, current_node = open_set.get()
+            if current_node_id in closed_set:
+                continue
 
-                if current_node == goal_node:
-                    return self.reconstruct_path(came_from, start_node_id, goal_node_id), collisions
+            path = path + [current_node_id]
 
-                for neighbor_id in self.graph[current_node.node_id]:
-                    neighbor_node = self.get_node_by_id(neighbor_id)
+            if current_node_id == goal_node_id:
+                return path, collisions
 
-                    if neighbor_node.node_id not in came_from:
-                        open_set.put((self.heuristic(neighbor_node, goal_node), neighbor_node))
-                        came_from[neighbor_node.node_id] = current_node.node_id
+            closed_set.add(current_node_id)
 
-                        # Verificar colisão com o caminho do jogador 1
-                        if neighbor_node.node_id in player1_path and neighbor_node.node_id not in collisions:
-                            collisions.append(neighbor_node.node_id)
+            if current_node_id != 0:  # Ignora o nodo especial 0
+                # Verificar colisões com o caminho do player 1
+                if self.check_collision([current_node_id], player1_path):
+                    collisions.append(current_node_id)
+                    continue  # Ignora este nodo e tenta próximo
 
-            return None, collisions
+            for neighbor_id in self.graph[current_node_id]:
+                if neighbor_id not in closed_set:
+                    h_cost = self.heuristic(self.get_node_by_id(neighbor_id), self.get_node_by_id(goal_node_id))
+                    heapq.heappush(open_set, (h_cost, neighbor_id, path))
 
-#-----------------------printar_grafo (just 1 and 2)---------------------------------#
+        return [], collisions
+
+#-----------------------printar_grafo sem colisions---------------------------------#
 
     def get_node_index_by_id(self, node_id):
         for i, node in enumerate(self.nodes):
@@ -567,34 +542,56 @@ class Build:
                 return i
         return None
 
-    def highlight_path(self, path, collision_nodes=None):
-        node_colors = ['skyblue'] * len(self.nodes)
-
-        for node_id in path:
-            node_index = self.get_node_index_by_id(node_id)
-            if node_index is not None and 0 <= node_index < len(self.nodes):
-                node_colors[node_index] = 'green'
-
-        if collision_nodes:
-            for collision_node_id in collision_nodes:
-                collision_node_index = self.get_node_index_by_id(collision_node_id)
-                if collision_node_index is not None and 0 <= collision_node_index < len(self.nodes):
-                    node_colors[collision_node_index] = 'red'
-
-        G = nx.Graph()
-
-        for i, node in enumerate(self.nodes):
-            G.add_node(node.node_id, pos=(node.x, -node.y), color=node_colors[i])
-
-        for node_id, connections in self.graph.items():
-            for neighbor_id in connections:
-                G.add_edge(node_id, neighbor_id)
-
+    def draw_directed_path(self, path):
+        G = nx.DiGraph()
+        for node_id in self.graph.keys():
+            G.add_node(node_id, pos=(self.get_node_by_id(node_id).x, -self.get_node_by_id(node_id).y))
+        for i in range(len(path) - 1):
+            node_from, node_to = path[i], path[i + 1]
+            G.add_edge(node_from, node_to)
+        node_colors = {node: 'green' if node in path else 'skyblue' for node in G.nodes}
         pos = nx.get_node_attributes(G, 'pos')
-        colors = nx.get_node_attributes(G, 'color')
-
-        labels = {node.node_id: node.node_id for node in self.nodes}
-
-        nx.draw(G, pos, with_labels=True, labels=labels, font_weight='bold', node_size=700, font_size=8, node_color=list(colors.values()), edge_color='gray', arrowsize=20, connectionstyle='arc3,rad=0.1')
+        nx.draw(G, pos, with_labels=True, font_weight='bold', node_size=700, font_size=8, node_color=list(node_colors.values()), edge_color='gray', connectionstyle='arc3,rad=0.1', arrows=True, arrowstyle='->', arrowsize=20)
 
         plt.show()
+
+#---------------------Draw colision------------------------------------------#
+
+    def draw_filtered_path_with_collisions(self, path, collisions):
+        filtered_collisions = self.filter_collisions(path, collisions) 
+        G = nx.DiGraph()
+        for node_id in self.graph.keys():
+            G.add_node(node_id, pos=(self.get_node_by_id(node_id).x, -self.get_node_by_id(node_id).y))
+        for i in range(len(path) - 1):
+            node_from, node_to = path[i], path[i + 1]
+            G.add_edge(node_from, node_to)
+
+        node_colors = {node: 'green' if node in path else 'skyblue' for node in G.nodes}
+        edge_colors = {edge: 'black' for edge in G.edges}
+        edges_to_remove = []
+        for collision_node in filtered_collisions:
+            if collision_node in G.nodes:
+                node_colors[collision_node] = 'red'
+                edges_to_remove.extend(G.out_edges(collision_node)) 
+        G.remove_edges_from(edges_to_remove)
+
+        pos = nx.get_node_attributes(G, 'pos')
+        nx.draw(G, pos, with_labels=True, font_weight='bold', node_size=700, font_size=8,
+                node_color=list(node_colors.values()), edge_color=list(edge_colors.values()),
+                connectionstyle='arc3,rad=0.1', arrows=True, arrowstyle='->', arrowsize=10)
+
+        plt.show()
+
+
+    def filter_collisions(self, path, collisions):
+        filtered_collisions = []
+        if (path == []):
+            return collisions
+        else:
+            for collision_node in collisions:
+                close_to_path = any(self.euclidean_distance(self.get_node_by_id(path_node), self.get_node_by_id(collision_node)) <= 1 for path_node in path)
+
+                if close_to_path:
+                    filtered_collisions.append(collision_node)
+
+            return filtered_collisions
